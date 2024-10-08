@@ -17,11 +17,14 @@ import java.util.List;
 //@RequiredArgsConstructor
 public class Category {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Or GenerationType.AUTO
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long categoryId;
     @NotBlank
     @Size(min = 5, message = "category name must contains atleast 5 characters")
     private String categoryName;
+    private String description;
+    @Version
+    private Long version;
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
     public List<Product> products;

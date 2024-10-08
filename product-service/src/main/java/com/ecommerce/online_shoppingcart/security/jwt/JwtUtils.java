@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.WebUtils;
 
@@ -19,6 +18,7 @@ import java.util.Date;
 
 @Component
 public class JwtUtils {
+
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
     @Value("${spring.app.jwtSecret}")
@@ -30,17 +30,13 @@ public class JwtUtils {
     @Value("${spring.ecom.app.jwtCookieName}")
     private String jwtCookie;
 
-    // Method to get JWT from Cookies
+    // Get JWT from Cookies
     public String getJwtFromCookies(HttpServletRequest request) {
         Cookie cookie = WebUtils.getCookie(request, jwtCookie);
-        if (cookie != null) {
-            return cookie.getValue();
-        } else {
-            return null;
-        }
+        return cookie != null ? cookie.getValue() : null;
     }
 
-    // Generate JWT Cookie for a given user
+    // Generate JWT Cookie
     public ResponseCookie generateJwtCookie(UserDetailsImpl userPrincipal) {
         String jwt = generateTokenFromUsername(userPrincipal.getUsername());
         return ResponseCookie.from(jwtCookie, jwt)
@@ -50,25 +46,24 @@ public class JwtUtils {
                 .build();
     }
 
-    // Clear JWT Cookie
+    // Clean JWT Cookie
     public ResponseCookie getCleanJwtCookie() {
         return ResponseCookie.from(jwtCookie, null)
                 .path("/api")
-                .maxAge(0)
                 .build();
     }
 
-    // Generate JWT Token from username
+    // Generate JWT from Username
     public String generateTokenFromUsername(String username) {
         return Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
-                .signWith(key(), SignatureAlgorithm.HS256)
+                .signWith(key(), SignatureAlgorithm.HS512)
                 .compact();
     }
 
-    // Extract username from JWT token
+    // Get Username from JWT Token
     public String getUserNameFromJwtToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(key())
@@ -78,9 +73,11 @@ public class JwtUtils {
                 .getSubject();
     }
 
-    // Get signing key from jwtSecret
+    // Key Generation
     private Key key() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+        byte[] decodedKey = Decoders.BASE64.decode(jwtSecret);
+        logger.info("Decoded JWT Key Length: {}", decodedKey.length * 8); // Length in bits
+        return Keys.hmacShaKeyFor(decodedKey);
     }
 
     // Validate JWT Token

@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 import java.util.List;
@@ -69,14 +70,21 @@ public class CategoryServiceImpl implements CategoryService{
     }
 
     @Override
+    @Transactional
     public CategoryDTO updateCategory(CategoryDTO categoryDTO, Long categoryId) {
-        Category category = modelMapper.map(categoryDTO,Category.class);
-        Category savedCategoryFromDB =  categoryRepository.findById(categoryId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Category","categoryId",categoryId));
-        category.setCategoryId(categoryId);
-           Category savedCategory = categoryRepository.save(category);
-            return modelMapper.map(savedCategory,CategoryDTO.class);
+        Category savedCategoryFromDB = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", categoryId));
 
+        // Manually set fields from DTO to existing category (excluding id, version, etc.)
+        savedCategoryFromDB.setCategoryName(categoryDTO.getCategoryName());
+        savedCategoryFromDB.setDescription(categoryDTO.getDescription());
+        // Continue setting other fields if necessary
+
+        // Save the updated entity
+        Category updatedCategory = categoryRepository.save(savedCategoryFromDB);
+
+        // Map the saved entity back to DTO
+        return modelMapper.map(updatedCategory, CategoryDTO.class);
     }
 
     @Override
